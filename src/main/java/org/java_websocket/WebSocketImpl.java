@@ -10,6 +10,7 @@ import java.nio.channels.SelectionKey;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
@@ -106,6 +107,8 @@ public class WebSocketImpl implements WebSocket {
 
 	private InetSocketAddress remoteAddressBeforeProxy;
 
+	private String sessionId;
+
 	private boolean isBehindProxy;
 
 	/**
@@ -132,6 +135,8 @@ public class WebSocketImpl implements WebSocket {
 	public WebSocketImpl( WebSocketListener listener , Draft draft ) {
 		if( listener == null || ( draft == null && role == Role.SERVER ) )// socket can be null because we want do be able to create the object without already having a bound channel
 			throw new IllegalArgumentException( "parameters must not be null" );
+
+		this.sessionId = UUID.randomUUID().toString();
 		this.outQueue = new LinkedBlockingQueue<ByteBuffer>();
 		inQueue = new LinkedBlockingQueue<ByteBuffer>();
 		this.wsl = listener;
@@ -784,4 +789,7 @@ public class WebSocketImpl implements WebSocket {
 		return resourceDescriptor;
 	}
 
+	public String getSessionId() {
+		return sessionId;
+	}
 }
