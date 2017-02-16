@@ -104,12 +104,17 @@ public class WebSocketImpl implements WebSocket {
 	
 	private String resourceDescriptor = null;
 
+	private InetSocketAddress remoteAddressBeforeProxy;
+
+	private boolean isBehindProxy;
+
 	/**
 	 * crates a websocket with server role
 	 */
-	public WebSocketImpl( WebSocketListener listener , List<Draft> drafts ) {
+	public WebSocketImpl( WebSocketListener listener , List<Draft> drafts, boolean isBehindProxy ) {
 		this( listener, (Draft) null );
 		this.role = Role.SERVER;
+		this.isBehindProxy = isBehindProxy;
 		// draft.copyInstance will be called when the draft is first needed
 		if( drafts == null || drafts.isEmpty() ) {
 			knownDrafts = defaultdraftlist;
@@ -142,7 +147,7 @@ public class WebSocketImpl implements WebSocket {
 
 	@Deprecated
 	public WebSocketImpl( WebSocketListener listener , List<Draft> drafts , Socket socket ) {
-		this( listener, drafts );
+		this( listener, drafts, false );
 	}
 
 	/**
@@ -155,8 +160,13 @@ public class WebSocketImpl implements WebSocket {
 			System.out.println( "process(" + socketBuffer.remaining() + "): {" + ( socketBuffer.remaining() > 1000 ? "too big to display" : new String( socketBuffer.array(), socketBuffer.position(), socketBuffer.remaining() ) ) + "}" );
 
 		if( readystate != READYSTATE.NOT_YET_CONNECTED ) {
-			decodeFrames( socketBuffer );;
+			decodeFrames( socketBuffer );
 		} else {
+
+			if(this.isBehindProxy) {
+				parseProxyHeader(socketBuffer);
+			}
+
 			if( decodeHandshake( socketBuffer ) ) {
 				assert ( tmpHandshakeBytes.hasRemaining() != socketBuffer.hasRemaining() || !socketBuffer.hasRemaining() ); // the buffers will never have remaining bytes at the same time
 
@@ -169,6 +179,41 @@ public class WebSocketImpl implements WebSocket {
 		}
 		assert ( isClosing() || isFlushAndClose() || !socketBuffer.hasRemaining() );
 	}
+
+	private boolean parseProxyHeader( ByteBuffer socketBufferNew ) {
+
+		StringBuilder bob = new StringBuilder();
+		while (true) {
+			char c = (char)socketBufferNew.get();
+			if(c == '\n') {
+				break;
+			}
+			bob.append(c);
+		}
+
+		// No proxy detected
+		if(bob.length() == 0) {
+			socketBufferNew.flip();
+			return false;
+		}
+
+		String proxyHeader = bob.toString();
+
+		if( DEBUG ) {
+			System.out.println("Proxy header found: " + proxyHeader);
+		}
+
+		try {
+			String[] proxyHeaderParts = proxyHeader.split(" ");
+			remoteAddressBeforeProxy = new InetSocketAddress(proxyHeaderParts[2], Integer.parseInt(proxyHeaderParts[4]));
+			return true;
+		} catch(Exception ex) {
+			System.out.println("Parsing proxy header: " + proxyHeader + "\n" + ex.toString());
+			return false;
+		}
+	}
+
+
 	/**
 	 * Returns whether the handshake phase has is completed.
 	 * In case of a broken handshake this will be never the case.
@@ -717,6 +762,11 @@ public class WebSocketImpl implements WebSocket {
 	@Override
 	public InetSocketAddress getLocalSocketAddress() {
 		return wsl.getLocalSocketAddress( this );
+	}
+
+	@Override
+	public InetSocketAddress getRemoteAddressBeforeProxy() {
+		return this.remoteAddressBeforeProxy;
 	}
 
 	@Override

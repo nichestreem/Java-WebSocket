@@ -84,6 +84,7 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 	private List<WebSocketImpl> iqueue;
 	private BlockingQueue<ByteBuffer> buffers;
 	private int queueinvokes = 0;
+	private boolean isBehindProxy;
 	private final AtomicInteger queuesize = new AtomicInteger( 0 );
 
 	private WebSocketServerFactory wsf = new DefaultWebSocketServerFactory();
@@ -92,40 +93,40 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 	 * Creates a WebSocketServer that will attempt to
 	 * listen on port <var>WebSocket.DEFAULT_PORT</var>.
 	 * 
-	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection) more details here
+	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection, boolean) more details here
 	 */
 	public WebSocketServer() throws UnknownHostException {
-		this( new InetSocketAddress( WebSocket.DEFAULT_PORT ), DECODERS, null );
+		this( new InetSocketAddress( WebSocket.DEFAULT_PORT ), DECODERS, null, false );
 	}
 
 	/**
 	 * Creates a WebSocketServer that will attempt to bind/listen on the given <var>address</var>.
 	 * 
-	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection) more details here
+	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection, boolean) more details here
 	 */
-	public WebSocketServer( InetSocketAddress address ) {
-		this( address, DECODERS, null );
+	public WebSocketServer( InetSocketAddress address, boolean isBehindProxy ) {
+		this( address, DECODERS, null, isBehindProxy );
 	}
 
 	/**
-	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection) more details here
+	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection, boolean) more details here
 	 */
-	public WebSocketServer( InetSocketAddress address , int decoders ) {
-		this( address, decoders, null );
+	public WebSocketServer( InetSocketAddress address , int decoders, boolean isBehindProxy ) {
+		this( address, decoders, null, isBehindProxy );
 	}
 
 	/**
-	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection) more details here
+	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection, boolean) more details here
 	 */
-	public WebSocketServer( InetSocketAddress address , List<Draft> drafts ) {
-		this( address, DECODERS, drafts );
+	public WebSocketServer( InetSocketAddress address , List<Draft> drafts, boolean isBehindProxy ) {
+		this( address, DECODERS, drafts, isBehindProxy );
 	}
 
 	/**
-	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection) more details here
+	 * @see #WebSocketServer(InetSocketAddress, int, List, Collection, boolean ) more details here
 	 */
-	public WebSocketServer( InetSocketAddress address , int decodercount , List<Draft> drafts ) {
-		this( address, decodercount, drafts, new HashSet<WebSocket>() );
+	public WebSocketServer( InetSocketAddress address , int decodercount , List<Draft> drafts, boolean isBehindProxy ) {
+		this( address, decodercount, drafts, new HashSet<WebSocket>(), isBehindProxy );
 	}
 
 	/**
@@ -144,11 +145,14 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 	 *            Allows to specify a collection that will be used to store the websockets in. <br>
 	 *            If you plan to often iterate through the currently connected websockets you may want to use a collection that does not require synchronization like a {@link CopyOnWriteArraySet}. In that case make sure that you overload {@link #removeConnection(WebSocket)} and {@link #addConnection(WebSocket)}.<br>
 	 *            By default a {@link HashSet} will be used.
+	 *
+	 * @param isBehindProxy
+	 * 			  Indicates if this server is started behind a load balancer with proxy headers enabled.
 	 * 
 	 * @see #removeConnection(WebSocket) for more control over syncronized operation
 	 * @see <a href="https://github.com/TooTallNate/Java-WebSocket/wiki/Drafts" > more about drafts</a>
 	 */
-	public WebSocketServer( InetSocketAddress address , int decodercount , List<Draft> drafts , Collection<WebSocket> connectionscontainer ) {
+	public WebSocketServer( InetSocketAddress address , int decodercount , List<Draft> drafts , Collection<WebSocket> connectionscontainer, boolean isBehindProxy ) {
 		if( address == null || decodercount < 1 || connectionscontainer == null ) {
 			throw new IllegalArgumentException( "address and connectionscontainer must not be null and you need at least 1 decoder" );
 		}
@@ -160,6 +164,7 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 
 		this.address = address;
 		this.connections = connectionscontainer;
+		this.isBehindProxy = isBehindProxy;
 
 		iqueue = new LinkedList<WebSocketImpl>();
 
@@ -307,7 +312,7 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 
 							SocketChannel channel = server.accept();
 							channel.configureBlocking( false );
-							WebSocketImpl w = wsf.createWebSocket( this, drafts, channel.socket() );
+							WebSocketImpl w = wsf.createWebSocket( this, drafts, channel.socket(), this.isBehindProxy );
 							w.key = channel.register( selector, SelectionKey.OP_READ, w );
 							w.channel = wsf.wrapChannel( channel, w.key );
 							i.remove();
@@ -522,7 +527,7 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 	/**
 	 * This method performs remove operations on the connection and therefore also gives control over whether the operation shall be synchronized
 	 * <p>
-	 * {@link #WebSocketServer(InetSocketAddress, int, List, Collection)} allows to specify a collection which will be used to store current connections in.<br>
+	 * {@link #WebSocketServer(InetSocketAddress, int, List, Collection, boolean)} allows to specify a collection which will be used to store current connections in.<br>
 	 * Depending on the type on the connection, modifications of that collection may have to be synchronized.
 	 **/
 	protected boolean removeConnection( WebSocket ws ) {
@@ -719,7 +724,7 @@ public abstract class WebSocketServer extends WebSocketAdapter implements Runnab
 		@Override
 		public WebSocketImpl createWebSocket( WebSocketAdapter a, Draft d, Socket s );
 
-		public WebSocketImpl createWebSocket( WebSocketAdapter a, List<Draft> drafts, Socket s );
+		public WebSocketImpl createWebSocket( WebSocketAdapter a, List<Draft> drafts, Socket s, boolean isBehindProxy );
 
 		/**
 		 * Allows to wrap the Socketchannel( key.channel() ) to insert a protocol layer( like ssl or proxy authentication) beyond the ws layer.

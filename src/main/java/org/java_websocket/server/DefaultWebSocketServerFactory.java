@@ -16,8 +16,8 @@ public class DefaultWebSocketServerFactory implements WebSocketServerFactory {
 		return new WebSocketImpl( a, d );
 	}
 	@Override
-	public WebSocketImpl createWebSocket( WebSocketAdapter a, List<Draft> d, Socket s ) {
-		return new WebSocketImpl( a, d );
+	public WebSocketImpl createWebSocket( WebSocketAdapter a, List<Draft> d, Socket s, boolean isBehindProxy ) {
+		return new WebSocketImpl( a, d, isBehindProxy );
 	}
 	@Override
 	public SocketChannel wrapChannel( SocketChannel channel, SelectionKey key ) {

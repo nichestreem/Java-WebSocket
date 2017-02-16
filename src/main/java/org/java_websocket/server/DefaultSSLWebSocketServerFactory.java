@@ -12,6 +12,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLEngine;
 
 import org.java_websocket.SSLSocketChannel2;
+import org.java_websocket.WebSocket;
 import org.java_websocket.WebSocketAdapter;
 import org.java_websocket.WebSocketImpl;
 import org.java_websocket.drafts.Draft;
@@ -45,7 +46,7 @@ public class DefaultSSLWebSocketServerFactory implements WebSocketServer.WebSock
 	}
 
 	@Override
-	public WebSocketImpl createWebSocket( WebSocketAdapter a, List<Draft> d, Socket s ) {
-		return new WebSocketImpl( a, d );
+	public WebSocketImpl createWebSocket( WebSocketAdapter a, List<Draft> d, Socket s, boolean isBehindProxy ) {
+		return new WebSocketImpl( a, d, isBehindProxy );
 	}
 }

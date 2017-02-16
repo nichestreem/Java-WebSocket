@@ -3,6 +3,7 @@ package org.java_websocket.example;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.ByteBuffer;
 
@@ -162,4 +163,8 @@ public class AutobahnClientTest extends WebSocketClient {
 		getConnection().sendFrame( frame );
 	}
 
+	@Override
+	public InetSocketAddress getRemoteAddressBeforeProxy() {
+		return null;
+	}
 }

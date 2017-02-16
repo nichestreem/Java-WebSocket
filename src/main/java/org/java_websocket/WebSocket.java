@@ -90,6 +90,8 @@ public interface WebSocket {
 	 */
 	public abstract InetSocketAddress getLocalSocketAddress();
 
+	InetSocketAddress getRemoteAddressBeforeProxy();
+
 	public abstract boolean isConnecting();
 
 	public abstract boolean isOpen();

@@ -18,11 +18,11 @@ public class AutobahnServerTest extends WebSocketServer {
 	private static int counter = 0;
 	
 	public AutobahnServerTest( int port , Draft d ) throws UnknownHostException {
-		super( new InetSocketAddress( port ), Collections.singletonList( d ) );
+		super( new InetSocketAddress( port ), Collections.singletonList( d ), false );
 	}
 	
 	public AutobahnServerTest( InetSocketAddress address, Draft d ) {
-		super( address, Collections.singletonList( d ) );
+		super( address, Collections.singletonList( d ), false );
 	}
 
 	@Override

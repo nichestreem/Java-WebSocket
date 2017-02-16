@@ -27,7 +27,7 @@ public class AutobahnClientScenario {
 	private class AutobahnServer extends WebSocketServer {
 
 		public AutobahnServer(int port, Draft d) throws UnknownHostException {
-			super(new InetSocketAddress(port), Collections.singletonList(d));
+			super(new InetSocketAddress(port), Collections.singletonList(d), false);
 		}
 
 		@Override
@@ -92,6 +92,10 @@ public class AutobahnClientScenario {
 			connectionOpenedLatch.countDown();
 		}
 
+		@Override
+		public InetSocketAddress getRemoteAddressBeforeProxy() {
+			return null;
+		}
 	}
 
 	private static Draft getDraft(int number) {
