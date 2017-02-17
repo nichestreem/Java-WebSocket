@@ -197,13 +197,13 @@ public class WebSocketImpl implements WebSocket {
 			bob.append(c);
 		}
 
+		String proxyHeader = bob.toString();
+
 		// No proxy detected
-		if(bob.length() == 0) {
+		if(!proxyHeader.startsWith("PROXY")) {
 			socketBufferNew.flip();
 			return false;
 		}
-
-		String proxyHeader = bob.toString();
 
 		if( DEBUG ) {
 			System.out.println("Proxy header found: " + proxyHeader);
@@ -214,6 +214,7 @@ public class WebSocketImpl implements WebSocket {
 			remoteAddressBeforeProxy = new InetSocketAddress(proxyHeaderParts[2], Integer.parseInt(proxyHeaderParts[4]));
 			return true;
 		} catch(Exception ex) {
+			socketBufferNew.flip();
 			System.out.println("Parsing proxy header: " + proxyHeader + "\n" + ex.toString());
 			return false;
 		}
