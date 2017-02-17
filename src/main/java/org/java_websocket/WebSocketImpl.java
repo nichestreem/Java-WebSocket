@@ -106,6 +106,7 @@ public class WebSocketImpl implements WebSocket {
 	private String resourceDescriptor = null;
 
 	private InetSocketAddress remoteAddressBeforeProxy;
+	private boolean hasProxyHeader;
 
 	private String sessionId;
 
@@ -168,8 +169,8 @@ public class WebSocketImpl implements WebSocket {
 			decodeFrames( socketBuffer );
 		} else {
 
-			if(this.isBehindProxy) {
-				parseProxyHeader(socketBuffer);
+			if(this.isBehindProxy && !this.hasProxyHeader) {
+				this.hasProxyHeader = parseProxyHeader(socketBuffer);
 			}
 
 			if( decodeHandshake( socketBuffer ) ) {
